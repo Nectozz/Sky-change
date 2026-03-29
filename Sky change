@@ -8,7 +8,7 @@ local LocalPlayer = Players.LocalPlayer
 
 -- 🎨 Настройки GUI
 local GUI_SETTINGS = {
-    Title = "GGH Sky Control",
+    Title = "Sky change",
     AccentColor = Color3.fromRGB(120, 90, 255),
     BackgroundColor = Color3.fromRGB(25, 25, 35),
     TextColor = Color3.fromRGB(255, 255, 255)
@@ -16,7 +16,7 @@ local GUI_SETTINGS = {
 
 -- 🌟 Создание ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GGH_SkyControl"
+ScreenGui.Name = "Sky change"
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
 

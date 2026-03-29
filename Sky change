@@ -1,0 +1,531 @@
+-- Sky change Script - Управление FOV и Sky
+-- Автор: Nectozz
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- 🎨 Настройки GUI
+local GUI_SETTINGS = {
+    Title = "GGH Sky Control",
+    AccentColor = Color3.fromRGB(120, 90, 255),
+    BackgroundColor = Color3.fromRGB(25, 25, 35),
+    TextColor = Color3.fromRGB(255, 255, 255)
+}
+
+-- 🌟 Создание ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GGH_SkyControl"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+if game:GetService("CoreGui"):FindFirstChild("GGH_SkyControl") then
+    game:GetService("CoreGui").GGH_SkyControl:Destroy()
+end
+ScreenGui.Parent = game.CoreGui
+
+-- 📦 Главный контейнер
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 320, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -200)
+MainFrame.BackgroundColor3 = GUI_SETTINGS.BackgroundColor
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+-- 🔲 Закругленные углы
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 12)
+Corner.Parent = MainFrame
+
+-- ✨ Тень
+local Shadow = Instance.new("UIStroke")
+Shadow.Color = Color3.fromRGB(0, 0, 0)
+Shadow.Thickness = 3
+Shadow.Transparency = 0.7
+Shadow.Parent = MainFrame
+
+-- 🔝 Верхняя панель
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 60)
+TopBar.Position = UDim2.new(0, 0, 0, 0)
+TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+local TopBarCorner = Instance.new("UICorner")
+TopBarCorner.CornerRadius = UDim.new(0, 12, 0, 0)
+TopBarCorner.Parent = TopBar
+
+-- 🏷️ Заголовок
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -80, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = GUI_SETTINGS.TextColor
+Title.Text = GUI_SETTINGS.Title
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 22
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
+
+-- ❌ Кнопка закрытия
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 40, 0, 40)
+CloseButton.Position = UDim2.new(1, -50, 0.5, -20)
+CloseButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Text = "✕"
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 20
+CloseButton.AutoButtonColor = false
+CloseButton.Parent = TopBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(1, 0)
+CloseCorner.Parent = CloseButton
+
+-- 🔄 Анимация кнопки закрытия
+CloseButton.MouseEnter:Connect(function()
+    TweenService:Create(CloseButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(255, 80, 80),
+        Size = UDim2.new(0, 42, 0, 42)
+    }):Play()
+end)
+
+CloseButton.MouseLeave:Connect(function()
+    TweenService:Create(CloseButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(220, 60, 60),
+        Size = UDim2.new(0, 40, 0, 40)
+    }):Play()
+end)
+
+-- 📝 Контейнер для контента
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, -40, 0, 320)
+ContentFrame.Position = UDim2.new(0, 20, 0, 70)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = MainFrame
+
+-- 🔧 Раздел FOV
+local FovSection = Instance.new("Frame")
+FovSection.Size = UDim2.new(1, 0, 0, 140)
+FovSection.Position = UDim2.new(0, 0, 0, 10)
+FovSection.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+FovSection.BorderSizePixel = 0
+FovSection.Parent = ContentFrame
+
+local FovCorner = Instance.new("UICorner")
+FovCorner.CornerRadius = UDim.new(0, 10)
+FovCorner.Parent = FovSection
+
+-- 🎯 Заголовок FOV
+local FovTitle = Instance.new("TextLabel")
+FovTitle.Size = UDim2.new(1, -20, 0, 40)
+FovTitle.Position = UDim2.new(0, 10, 0, 0)
+FovTitle.BackgroundTransparency = 1
+FovTitle.TextColor3 = GUI_SETTINGS.AccentColor
+FovTitle.Text = "🎯 Field of View"
+FovTitle.Font = Enum.Font.GothamBold
+FovTitle.TextSize = 18
+FovTitle.TextXAlignment = Enum.TextXAlignment.Left
+FovTitle.Parent = FovSection
+
+-- 📦 TextBox для FOV
+local FovTextBox = Instance.new("TextBox")
+FovTextBox.Size = UDim2.new(1, -20, 0, 45)
+FovTextBox.Position = UDim2.new(0, 10, 0, 50)
+FovTextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+FovTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+FovTextBox.PlaceholderText = "Введите FOV (70-120)"
+FovTextBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+FovTextBox.Text = ""
+FovTextBox.Font = Enum.Font.Gotham
+FovTextBox.TextSize = 16
+FovTextBox.ClearTextOnFocus = false
+FovTextBox.Parent = FovSection
+
+local FovBoxCorner = Instance.new("UICorner")
+FovBoxCorner.CornerRadius = UDim.new(0, 8)
+FovBoxCorner.Parent = FovTextBox
+
+-- 🔘 Кнопка отправки FOV
+local FovButton = Instance.new("TextButton")
+FovButton.Size = UDim2.new(1, -20, 0, 40)
+FovButton.Position = UDim2.new(0, 10, 1, -50)
+FovButton.BackgroundColor3 = GUI_SETTINGS.AccentColor
+FovButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FovButton.Text = "🚀 Установить FOV"
+FovButton.Font = Enum.Font.GothamBold
+FovButton.TextSize = 16
+FovButton.AutoButtonColor = false
+FovButton.Parent = FovSection
+
+local FovBtnCorner = Instance.new("UICorner")
+FovBtnCorner.CornerRadius = UDim.new(0, 8)
+FovBtnCorner.Parent = FovButton
+
+-- ⛅ Раздел Sky
+local SkySection = Instance.new("Frame")
+SkySection.Size = UDim2.new(1, 0, 0, 140)
+SkySection.Position = UDim2.new(0, 0, 1, -130)
+SkySection.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+SkySection.BorderSizePixel = 0
+SkySection.Parent = ContentFrame
+
+local SkyCorner = Instance.new("UICorner")
+SkyCorner.CornerRadius = UDim.new(0, 10)
+SkyCorner.Parent = SkySection
+
+-- ☁️ Заголовок Sky
+local SkyTitle = Instance.new("TextLabel")
+SkyTitle.Size = UDim2.new(1, -20, 0, 40)
+SkyTitle.Position = UDim2.new(0, 10, 0, 0)
+SkyTitle.BackgroundTransparency = 1
+SkyTitle.TextColor3 = Color3.fromRGB(180, 180, 255)
+SkyTitle.Text = "☁️ Настройки Неба"
+SkyTitle.Font = Enum.Font.GothamBold
+SkyTitle.TextSize = 18
+SkyTitle.TextXAlignment = Enum.TextXAlignment.Left
+SkyTitle.Parent = SkySection
+
+-- 🌫️ Кнопка Gray Sky
+local GraySkyButton = Instance.new("TextButton")
+GraySkyButton.Size = UDim2.new(1, -20, 0, 45)
+GraySkyButton.Position = UDim2.new(0, 10, 0, 50)
+GraySkyButton.BackgroundColor3 = Color3.fromRGB(100, 100, 120)
+GraySkyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+GraySkyButton.Text = "🌫️ Gray Sky"
+GraySkyButton.Font = Enum.Font.GothamBold
+GraySkyButton.TextSize = 16
+GraySkyButton.AutoButtonColor = false
+GraySkyButton.Parent = SkySection
+
+local GraySkyCorner = Instance.new("UICorner")
+GraySkyCorner.CornerRadius = UDim.new(0, 8)
+GraySkyCorner.Parent = GraySkyButton
+
+-- 🌈 Кнопка Normal Sky
+local NormalSkyButton = Instance.new("TextButton")
+NormalSkyButton.Size = UDim2.new(1, -20, 0, 45)
+NormalSkyButton.Position = UDim2.new(0, 10, 1, -55)
+NormalSkyButton.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
+NormalSkyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+NormalSkyButton.Text = "🌈 Нормальное небо"
+NormalSkyButton.Font = Enum.Font.GothamBold
+NormalSkyButton.TextSize = 16
+NormalSkyButton.AutoButtonColor = false
+NormalSkyButton.Parent = SkySection
+
+local NormalSkyCorner = Instance.new("UICorner")
+NormalSkyCorner.CornerRadius = UDim.new(0, 8)
+NormalSkyCorner.Parent = NormalSkyButton
+
+-- 📊 Статус бар
+local StatusBar = Instance.new("Frame")
+StatusBar.Size = UDim2.new(1, 0, 0, 40)
+StatusBar.Position = UDim2.new(0, 0, 1, -40)
+StatusBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+StatusBar.BorderSizePixel = 0
+StatusBar.Parent = MainFrame
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(0, 0, 0, 12)
+StatusCorner.Parent = StatusBar
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, -20, 1, 0)
+StatusLabel.Position = UDim2.new(0, 10, 0, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+StatusLabel.Text = "GGH Sky Control v1.0 - Готов к работе"
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextSize = 14
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.Parent = StatusBar
+
+-- 🔄 Функция анимации кнопок
+local function setupButtonAnimation(button, normalColor, hoverColor)
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {
+            BackgroundColor3 = hoverColor,
+            Size = UDim2.new(1, -15, button.Size.Y.Scale, button.Size.Y.Offset)
+        }):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {
+            BackgroundColor3 = normalColor,
+            Size = UDim2.new(1, -20, button.Size.Y.Scale, button.Size.Y.Offset)
+        }):Play()
+    end)
+    
+    button.MouseButton1Down:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+            TextColor3 = normalColor
+        }):Play()
+    end)
+    
+    button.MouseButton1Up:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {
+            BackgroundColor3 = hoverColor,
+            TextColor3 = Color3.fromRGB(255, 255, 255)
+        }):Play()
+    end)
+end
+
+-- 🎨 Настройка анимаций кнопок
+setupButtonAnimation(FovButton, GUI_SETTINGS.AccentColor, Color3.fromRGB(140, 110, 255))
+setupButtonAnimation(GraySkyButton, Color3.fromRGB(100, 100, 120), Color3.fromRGB(130, 130, 150))
+setupButtonAnimation(NormalSkyButton, Color3.fromRGB(80, 160, 255), Color3.fromRGB(110, 190, 255))
+
+-- 🎯 Функция изменения FOV
+local function changeFov(value)
+    local fov = tonumber(value)
+    
+    if not fov then
+        StatusLabel.Text = "❌ Введите число!"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        task.wait(2)
+        StatusLabel.Text = "Готов к работе"
+        StatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+        return
+    end
+    
+    -- Ограничиваем значения
+    fov = math.clamp(fov, 70, 120)
+    
+    -- Пробуем изменить FOV камеры
+    local camera = workspace.CurrentCamera
+    if camera then
+        camera.FieldOfView = fov
+        StatusLabel.Text = "✅ FOV установлен: " .. fov
+        StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        
+        -- Анимация кнопки
+        TweenService:Create(FovButton, TweenInfo.new(0.3), {
+            BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+        }):Play()
+        
+        task.wait(1)
+        TweenService:Create(FovButton, TweenInfo.new(0.3), {
+            BackgroundColor3 = GUI_SETTINGS.AccentColor
+        }):Play()
+        
+        task.wait(1)
+        StatusLabel.Text = "Готов к работе"
+        StatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+    else
+        StatusLabel.Text = "❌ Камера не найдена"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        task.wait(2)
+        StatusLabel.Text = "Готов к работе"
+        StatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+    end
+end
+
+-- 🌫️ Функция Gray Sky
+local function applyGraySky()
+    StatusLabel.Text = "🔄 Применяем Gray Sky..."
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+    
+    -- Анимация кнопки
+    TweenService:Create(GraySkyButton, TweenInfo.new(0.3), {
+        BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    }):Play()
+    
+    -- Применяем серое небо
+    local sky = Lighting:FindFirstChild("Sky") or Instance.new("Sky")
+    
+    -- Серые текстуры для неба
+    sky.SkyboxBk = "rbxassetid://2350402582"  -- Задняя
+    sky.SkyboxDn = "rbxassetid://2350402582"  -- Нижняя
+    sky.SkyboxFt = "rbxassetid://2350402582"  -- Передняя
+    sky.SkyboxLf = "rbxassetid://2350402582"  -- Левая
+    sky.SkyboxRt = "rbxassetid://2350402582"  -- Правая
+    sky.SkyboxUp = "rbxassetid://2350402582"  -- Верхняя
+    
+    -- Настройки освещения
+    Lighting.FogColor = Color3.fromRGB(150, 150, 150)  -- Серый туман
+    Lighting.FogEnd = 50000  -- Дальность тумана
+    Lighting.Brightness = 1  -- Яркость
+    Lighting.OutdoorAmbient = Color3.fromRGB(150, 150, 150)  -- Серый окружающий свет
+    Lighting.TimeOfDay = "17:00:00"  -- Вечернее время
+    
+    -- Удаляем старые небеса если есть
+    if Lighting:FindFirstChild("sky") then
+        Lighting.sky:Destroy()
+    end
+    
+    sky.Parent = Lighting
+    
+    -- Плавное изменение цвета фона
+    for i = 0, 1, 0.05 do
+        Lighting.Ambient = Color3.fromRGB(
+            math.floor(150 * i),
+            math.floor(150 * i),
+            math.floor(150 * i)
+        )
+        task.wait(0.03)
+    end
+    
+    StatusLabel.Text = "✅ Gray Sky активирован"
+    StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+    
+    task.wait(1)
+    TweenService:Create(GraySkyButton, TweenInfo.new(0.3), {
+        BackgroundColor3 = Color3.fromRGB(100, 100, 120)
+    }):Play()
+    
+    task.wait(1)
+    StatusLabel.Text = "Готов к работе"
+    StatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+end
+
+-- 🌈 Функция Normal Sky
+local function applyNormalSky()
+    StatusLabel.Text = "🔄 Возвращаем нормальное небо..."
+    StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+    
+    -- Анимация кнопки
+    TweenService:Create(NormalSkyButton, TweenInfo.new(0.3), {
+        BackgroundColor3 = Color3.fromRGB(150, 210, 255)
+    }):Play()
+    
+    -- Возвращаем нормальные настройки
+    if Lighting:FindFirstChild("Sky") then
+        local sky = Lighting.Sky
+        
+        -- Возвращаем стандартные текстуры
+        sky.SkyboxBk = "rbxasset://textures/sky/sky512_bk.tex"
+        sky.SkyboxDn = "rbxasset://textures/sky/sky512_dn.tex"
+        sky.SkyboxFt = "rbxasset://textures/sky/sky512_ft.tex"
+        sky.SkyboxLf = "rbxasset://textures/sky/sky512_lf.tex"
+        sky.SkyboxRt = "rbxasset://textures/sky/sky512_rt.tex"
+        sky.SkyboxUp = "rbxasset://textures/sky/sky512_up.tex"
+    end
+    
+    -- Возвращаем нормальные настройки освещения
+    Lighting.FogColor = Color3.fromRGB(191, 191, 191)
+    Lighting.FogEnd = 100000
+    Lighting.Brightness = 1
+    Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+    Lighting.TimeOfDay = "14:00:00"
+    
+    -- Плавное возвращение цвета
+    for i = 1, 0, -0.05 do
+        Lighting.Ambient = Color3.fromRGB(
+            math.floor(150 * i + 50),
+            math.floor(150 * i + 50),
+            math.floor(150 * i + 50)
+        )
+        task.wait(0.03)
+    end
+    
+    StatusLabel.Text = "✅ Нормальное небо восстановлено"
+    StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 200)
+    
+    task.wait(1)
+    TweenService:Create(NormalSkyButton, TweenInfo.new(0.3), {
+        BackgroundColor3 = Color3.fromRGB(80, 160, 255)
+    }):Play()
+    
+    task.wait(1)
+    StatusLabel.Text = "Готов к работе"
+    StatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+end
+
+-- 🎮 Обработчики событий
+
+-- FOV кнопка
+FovButton.MouseButton1Click:Connect(function()
+    changeFov(FovTextBox.Text)
+end)
+
+-- Enter в TextBox
+FovTextBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        changeFov(FovTextBox.Text)
+    end
+end)
+
+-- Gray Sky кнопка
+GraySkyButton.MouseButton1Click:Connect(applyGraySky)
+
+-- Normal Sky кнопка
+NormalSkyButton.MouseButton1Click:Connect(applyNormalSky)
+
+-- ❌ Закрытие GUI
+CloseButton.MouseButton1Click:Connect(function()
+    -- Анимация закрытия
+    local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        BackgroundTransparency = 1
+    })
+    
+    local fadeTween = TweenService:Create(MainFrame, TweenInfo.new(0.4), {
+        BackgroundTransparency = 1
+    })
+    
+    closeTween:Play()
+    fadeTween:Play()
+    
+    closeTween.Completed:Wait()
+    ScreenGui:Destroy()
+end)
+
+-- ⌨️ Горячая клавиша для показа/скрытия
+local UserInputService = game:GetService("UserInputService")
+local guiVisible = true
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then
+        guiVisible = not guiVisible
+        
+        if guiVisible then
+            MainFrame.Visible = true
+            TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 320, 0, 400),
+                Position = UDim2.new(0.5, -160, 0.5, -200),
+                BackgroundTransparency = 0
+            }):Play()
+        else
+            TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                Size = UDim2.new(0, 0, 0, 0),
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                BackgroundTransparency = 1
+            }):Play()
+            
+            task.wait(0.3)
+            MainFrame.Visible = false
+        end
+    end
+end)
+
+-- 🎉 Информация в консоль
+print("====================================")
+print("🌌 Sky changer v1.0")
+print("====================================")
+print("🎯 FOV Control: Изменение Field of View")
+print("🌫️ Gray Sky: Серое атмосферное небо")
+print("🌈 Normal Sky: Возврат к стандартному небу")
+print("⌨️ Управление: RightControl - показать/скрыть GUI")
+print("====================================")
+
+-- 📊 Авто-обновление статуса
+spawn(function()
+    while ScreenGui and ScreenGui.Parent do
+        -- Обновляем статус в зависимости от времени
+        local time = Lighting.TimeOfDay
+        if time:find("17") or time:find("18") or time:find("19") then
+            StatusLabel.Text = "🕔 Вечернее время: " .. time
+        else
+            StatusLabel.Text = "🌞 Время суток: " .. time
+        end
+        
+        task.wait(5)
+    end
+end)
